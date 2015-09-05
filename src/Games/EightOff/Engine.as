@@ -17,17 +17,17 @@ package Games.EightOff
 		private var sidePiles:Array = [];//4
 		private var tempPile:TempCardsPile = new TempCardsPile();
 		
-		private var deck:Deck;
+		private var deck:DeckEightoff;
 		
 		private var pressedExtraPile:ExtraPile;
 		private var pressedFieldPile:FieldPile;
 		private var cardForMoving:Card;
 		private var cardsForMoving:Array;
 		
-		private var cardDropping:CardDropping;
+		private var cardDropping:CardDroppingEightoff;
 		private var interaction:Interaction;
 		
-		public function Engine(generalPar:Eightoff, extraPilesPar:Array, fieldPilesPar:Array, sidePilesPar:Array, deckPar:Deck)
+		public function Engine(generalPar:Eightoff, extraPilesPar:Array, fieldPilesPar:Array, sidePilesPar:Array, deckPar:DeckEightoff)
 		{
 			this.initFields(generalPar, extraPilesPar, fieldPilesPar, sidePilesPar, deckPar);
 			this.dealCards();
@@ -35,46 +35,54 @@ package Games.EightOff
 			this.makeInteraction();
 		}
 		
-		// AUTO FILL
+		// AUTO FILL //Dimitar Genov
 		//// AUTO SEND ACES TO PILES
 		private function sendAcesToSidePiles():void
 		{
 			sendAcesFromExtraToSide();
-			sendAcesFromFieldToSide();
+			checkForAcePossibility();
 		}
 		
-		////// AUTO SEND ACES FROM FIELD PILE TO SIDE PILES
-		private function sendAcesFromFieldToSide():void
+		////// CHEKS IF THERE ANY POSSIBILITIES FOR ACE IN FIELDPILE 
+		private function checkForAcePossibility():void 				
 		{
 			var isThereMorePossible:Boolean = true;
 			while (isThereMorePossible)
 			{
-				isThereMorePossible = false;
-				for (var fieldPileIndex:int = 0; fieldPileIndex < this.fieldPiles.length; fieldPileIndex++)
-				{
-					var fieldPile:FieldPile = this.fieldPiles[fieldPileIndex];
-					if (fieldPile.TopCard != null)
-					{
-						if (fieldPile.TopCard.CardValue == 1)
-						{
-							
-							this.cardForMoving = fieldPile.giveCard();
-							
-							for (var sidePileIndex:int = 0; sidePileIndex < this.sidePiles.length; sidePileIndex++)
-							{
-								var sidePile:SidePile = this.sidePiles[sidePileIndex];
-								if (sidePile.Suit == this.cardForMoving.CardSign)
-								{
-									sidePile.pushCard(this.cardForMoving);
-									isThereMorePossible = true;
-									break;
-								}
-							}
-						}
-					}
-				}
+				isThereMorePossible = searchFieldPileForAce();
 			}
 		}
+		////// SEARCH FOR ACE INTO FIELDPILES
+		private function searchFieldPileForAce():Boolean { 						
+			for (var fieldPileIndex:int = 0; fieldPileIndex < this.fieldPiles.length; fieldPileIndex++)
+			{
+				var fieldPile:FieldPile = this.fieldPiles[fieldPileIndex];
+				if (fieldPile.TopCard == null)
+				{
+					return false;
+				}
+				if (fieldPile.TopCard.CardValue == 1)
+				{
+					return isThereCorrectSidePile(fieldPile);
+				}
+			}
+			return false;
+		}
+		
+		////// SEARCH SIDE PILE FOR ACE. IF FOUND RETURN TRUE AND PUSH ACE TO SIDE PILE;
+		private function isThereCorrectSidePile(fieldPile:FieldPile):Boolean {
+			this.cardForMoving = fieldPile.giveCard();
+			for (var sidePileIndex:int = 0; sidePileIndex < this.sidePiles.length; sidePileIndex++)
+			{
+				var sidePile:SidePile = this.sidePiles[sidePileIndex];
+				if (sidePile.Suit == this.cardForMoving.CardSign)
+				{
+					sidePile.pushCard(this.cardForMoving);
+					return true;
+				}
+			}
+			return false;
+		}		
 		
 		////// AUTO SEND ACES FROM EXTRA PILE TO SIDE PILE
 		private function sendAcesFromExtraToSide():void
@@ -82,27 +90,27 @@ package Games.EightOff
 			for (var extraPileIndex:int = 0; extraPileIndex < this.extraPiles.length; extraPileIndex++)
 			{
 				var extraPile:ExtraPile = this.extraPiles[extraPileIndex];
-				if (!extraPile.isEmpty)
+				if (!extraPile.isEmpty && extraPile.itsCard.CardValue == 1)
 				{
-					if (extraPile.itsCard.CardValue == 1)
-					{
-						this.cardForMoving = extraPile.giveCard();
-						invokeTempPileToMouse();
-						this.tempPile.pushCard(this.cardForMoving);
-						for (var sidePileIndex:int = 0; sidePileIndex < this.sidePiles.length; sidePileIndex++)
-						{
-							var sidePile:SidePile = this.sidePiles[sidePileIndex];
-							if (sidePile.Suit == this.tempPile.FirstCard.CardSign)
-							{
-								//tween tempPile to sidePile
-								this.cardForMoving = this.tempPile.giveCard();
-								sidePile.pushCard(this.cardForMoving);
-							}
-						}
-					}
+					moveAcesToSidePile(extraPile);
 				}
 			}
 		}
+		////// SEARCH THE RIGHT PLACE FOR THE TAKEN ACES
+		private function moveAcesToSidePile(extraPile:ExtraPile):void {
+			this.cardForMoving = extraPile.giveCard();
+			invokeTempPileToMouse();
+			this.tempPile.pushCard(this.cardForMoving);
+			for (var sidePileIndex:int = 0; sidePileIndex < this.sidePiles.length; sidePileIndex++)
+			{
+				var sidePile:SidePile = this.sidePiles[sidePileIndex];
+				if (sidePile.Suit == this.tempPile.FirstCard.CardSign)
+				{	
+					this.cardForMoving = this.tempPile.giveCard();
+					sidePile.pushCard(this.cardForMoving);
+				}
+			}
+		}		
 		
 		// EXTRA PILE DRAG&DROP
 		//// DRAG CARD FROM EXTRA PILES
@@ -120,16 +128,16 @@ package Games.EightOff
 		//// DROP CARD FROM EXTRA PILE
 		private function dropTakenCardFromExtraPile(e:MouseEvent):void
 		{
-			this.cardDropping.tryCardOnExtraPile();
+			this.cardDropping.tryCardOnExtraPile(this.tempPile.FirstCard);
 			
 			if (!(this.cardDropping.IsDropped))
 			{
-				this.cardDropping.tryCardOnFieldPile();
+				this.cardDropping.tryCardOnFieldPile(this.tempPile.FirstCard);
 			}
 			
 			if (!(this.cardDropping.IsDropped))
 			{
-				this.cardDropping.tryCardOnSidePile();
+				this.cardDropping.tryCardOnSidePile(this.tempPile.FirstCard);
 				if (this.win())
 				{
 					this.makeWin();
@@ -145,7 +153,7 @@ package Games.EightOff
 		}
 		
 		// FIELD PILES Drag&Drop	
-		//// DRAG CARD FROM FIELD PILE
+		//// DRAG CARDS FROM FIELD PILE
 		private function dragCardsFromFieldPile(e:MouseEvent):void
 		{
 			this.pressedFieldPile = e.currentTarget as FieldPile;
@@ -158,7 +166,7 @@ package Games.EightOff
 					choosenStartCard = card;
 				}
 			}
-			
+			//SUPER MOVE
 			var countOfChoosenCards:int = pressedFieldPile.countOfChoosenCards(choosenStartCard);
 			if (pressedFieldPile.isSequenceFrom(choosenStartCard)&&(countOfChoosenCards<=emptyExtraPiles()||countOfChoosenCards==1))
 			{
@@ -175,16 +183,16 @@ package Games.EightOff
 		{
 			if (this.tempPile.CardsCount == 1)
 			{
-				this.cardDropping.tryCardOnExtraPile();
+				this.cardDropping.tryCardOnExtraPile(this.tempPile.FirstCard);
 				
 				if (!(this.cardDropping.IsDropped))
 				{
-					this.cardDropping.tryCardOnFieldPile();
+					this.cardDropping.tryCardOnFieldPile(this.tempPile.FirstCard);
 				}
 				
 				if (!(this.cardDropping.IsDropped))
 				{
-					this.cardDropping.tryCardOnSidePile();
+					this.cardDropping.tryCardOnSidePile(this.tempPile.FirstCard);
 					if (win())
 					{
 						makeWin();
@@ -193,7 +201,7 @@ package Games.EightOff
 			}
 			else if (this.tempPile.CardsCount > 1)
 			{
-				this.cardDropping.tryCardsOnFieldPile();
+				this.cardDropping.tryCardsOnFieldPile(this.tempPile.Cards);
 			}
 			
 			if (!(this.cardDropping.IsDropped))
@@ -204,18 +212,18 @@ package Games.EightOff
 			Assistant.removeEventListenerTo(this.tempPile, MouseEvent.MOUSE_UP, dropTakenCardsFromFieldPile);
 			this.removeTempPile();
 			
-			sendAcesFromFieldToSide();
+			checkForAcePossibility();
 		}
 		
 		// INIT FIELDS
-		private function initFields(generalPar:Eightoff, extraPilesPar:Array, fieldPilesPar:Array, sidePilesPar:Array, deckPar:Deck):void
+		private function initFields(generalPar:Eightoff, extraPilesPar:Array, fieldPilesPar:Array, sidePilesPar:Array, deckPar:DeckEightoff):void
 		{
 			this.general = generalPar;
 			this.extraPiles = extraPilesPar;
 			this.fieldPiles = fieldPilesPar;
 			this.sidePiles = sidePilesPar;
 			this.deck = deckPar;
-			this.cardDropping = new CardDropping(this.extraPiles, this.fieldPiles, this.sidePiles, this.cardForMoving, this.cardsForMoving, this.tempPile, this.general as Sprite);
+			this.cardDropping = new CardDroppingEightoff(this.extraPiles, this.fieldPiles, this.sidePiles, this.tempPile, this.general as Sprite);
 			this.interaction = new Interaction(this.extraPiles, this.fieldPiles, this.sidePiles, this.dragCardFromExtraPile, this.dragCardsFromFieldPile);
 		}
 		
@@ -243,7 +251,7 @@ package Games.EightOff
 		private function invokeTempPileToMouse():void
 		{
 			this.general.addChild(tempPile);
-			this.tempPile.x = general.mouseX - 20;
+			this.tempPile.x = general.mouseX - 20
 			this.tempPile.y = general.mouseY - 20;
 		}
 		
@@ -275,7 +283,7 @@ package Games.EightOff
 					count++;	
 				}
 			}
-			return count++;
+			return count;
 		}
 		
 		// CHECK FOR WIN
@@ -290,7 +298,7 @@ package Games.EightOff
 					filledSidePilesCount++;
 				}
 			}
-			if (filledSidePilesCount == 8) 
+			if (filledSidePilesCount == 4) 
 			{
 				return true;	
 			}

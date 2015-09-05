@@ -4,13 +4,16 @@ package Games.Prison
 	import flash.display.*;
 	import flash.geom.*;
 	import flash.net.URLRequest;
+	
+	import Interfaces.IGame;
 	import SharedClasses.*
+	import SharedClasses.PrisonAlternation.*
 	
 	/**
 	 * ...
 	 * @author Jordan
 	 */
-	public class PrisonSolitaire extends Sprite
+	public class PrisonSolitaire extends AbstractSolitaire implements IGame
 	{
 		private const STAGE_WIDTH:int = 800;
 		private const STAGE_HEIGHT:int = 600;
@@ -48,27 +51,33 @@ package Games.Prison
 		private var reservesContainer:Sprite;
 		private var taublePilesContainer:Sprite;
 		
+		//made by Jordan
 		public function PrisonSolitaire(cardsSkin:String = "skin1/")
 		{
 			this.cardsSkin = cardsSkin
 			showMenu()
 		}
 		
+		//made by Jordan
 		public function get IsGameRunning():Boolean
 		{
 			return this.isGameRunning;
 		}
 		
+		//made by Jordan
 		public function get IsWin():Boolean
 		{
 			return this.isWin;
 		}
 		
-		private function showMenu():void
+		//made by Kaloqn
+		protected override function showMenu():void
 		{
 			menuContainer = new Sprite();
 			
-			var helpMenu:PrisonHelpMenu = new PrisonHelpMenu();
+			var helpMenuText:String = "The top cards of tableau piles and cards from cells are available to play." + "You may build tableau piles down in suit." + "Only one card at a time can be moved." + "The top card of any tableau pile can also be moved to any cell." + "Each cell may contain only one card." + "Cards in the cells can be moved to the foundation piles or back to the tableau piles, if possible."
+			
+			var helpMenu:HelpMenu = new HelpMenu(helpMenuText);
 			menuContainer.addChild(helpMenu);
 			
 			var startButton:MenuButton = new MenuButton("start.png");
@@ -82,17 +91,19 @@ package Games.Prison
 			addChild(menuContainer);
 		}
 		
-		private function startGame(e:MouseEvent):void
+		//made by Vladimir
+		protected override function startGame(e:MouseEvent):void
 		{
 			removeChild(menuContainer);
 			menuContainer = null;
 			
 			showSurrenderAndTimer();
 			
-			DealSolitaire();
+			dealSolitaire();
 		}
 		
-		private function showSurrenderAndTimer():void
+		//made by Vladimir
+		protected override function showSurrenderAndTimer():void
 		{
 			buttonsContainer = new Sprite();
 			
@@ -111,16 +122,18 @@ package Games.Prison
 			addChild(buttonsContainer);
 		}
 		
-		private function DealSolitaire():void
+		//made by Vladimir
+		protected override function dealSolitaire():void
 		{
-			addCardContainers();
+			cards = fillDeck(cards,cardsSkin);
 			
-			loadDeck();
+			addCardContainers();
 			loadCardsFoundation();
 			loadReservedCards();
 			loadTaublePilesCards();
 		}
 		
+		//made by Vladimir
 		private function loadCardsFoundation():void
 		{
 			var rndCardNumber:int = randomRange(0, 52 - counterPlacedCards);
@@ -137,21 +150,7 @@ package Games.Prison
 				{
 					if (counter == rndCardNumber)
 					{
-						for (var card:int = cardValue * cardColors; card < cardValue * cardColors + cardColors; card++)
-						{
-							var object:Sprite = foundationContainer.getChildAt(counterAddedCards) as Sprite;
-							object.addChild(cards[card - counterAddedCards])
-							
-							//removing buttonMode for the foundation cards
-							var currentCard:Card = object.getChildAt(1) as Card;
-							currentCard.buttonMode = false;
-							currentCard.removeEventListener(MouseEvent.MOUSE_DOWN, startDraging);
-							currentCard.removeEventListener(MouseEvent.MOUSE_UP, stopDraging);
-							
-							cards.splice(card - counterAddedCards, 1);
-							counterAddedCards++;
-							counterPlacedCards++;
-						}
+						dealCardFoundation(cardValue, cardSign);
 					}
 					counter++;
 				}
@@ -164,8 +163,30 @@ package Games.Prison
 			{
 				loadCardsFoundation();
 			}
+			
+			function dealCardFoundation(cardValue:int,cardSign:int):void
+			{
+				var cardsDeal:int = 4;
+				
+				for (var card:int = cardValue * cardColors; card < cardsDeal; card++)
+				{
+					var object:Sprite = foundationContainer.getChildAt(counterAddedCards) as Sprite;
+					object.addChild(cards[card - counterAddedCards])
+					
+					//removing buttonMode for the foundation cards
+					var currentCard:Card = object.getChildAt(1) as Card;
+					currentCard.buttonMode = false;
+					currentCard.removeEventListener(MouseEvent.MOUSE_DOWN, startDraging);
+					currentCard.removeEventListener(MouseEvent.MOUSE_UP, stopDraging);
+					
+					cards.splice(card - counterAddedCards, 1);
+					counterAddedCards++;
+					counterPlacedCards++;
+				}
+			}
 		}
 		
+		//made by Vladimir
 		private function loadReservedCards():void
 		{
 			var reservedPiles:int = 8;
@@ -173,11 +194,13 @@ package Games.Prison
 			for (var i:int = 0; i < reservedPiles; i++)
 			{
 				var reservedPile:Sprite = reservesContainer.getChildAt(i) as Sprite;
-				dealRandomCard(reservedPile);
+				dealRandomCard(reservedPile, cards, counterPlacedCards);
+				counterPlacedCards++;
 			}
 		}
 		
-		private function loadTaublePilesCards():void
+		//made by Vladimir
+		protected override function loadTaublePilesCards():void
 		{
 			var taublePiles:int = 10;
 			var taubleCards:int = 4;
@@ -188,12 +211,14 @@ package Games.Prison
 				{
 					var pileContainer:Sprite = taublePilesContainer.getChildAt(pile) as Sprite;
 					var cardY:int = (pileContainer.numChildren - 1) * CARDS_Y_SPACING;
-					dealRandomCard(pileContainer, cardY);
+					dealRandomCard(pileContainer, cards, counterPlacedCards, cardY);
+					counterPlacedCards++;
 				}
 			}
 		}
 		
-		private function startDraging(e:MouseEvent):void
+		//made by Jordan
+		protected override function startDraging(e:MouseEvent):void
 		{
 			if (isLastCardOfPile(e.target as Card))
 			{
@@ -213,7 +238,8 @@ package Games.Prison
 			}
 		}
 		
-		private function stopDraging(e:MouseEvent):void
+		//made by Jordan
+		protected override function stopDraging(e:MouseEvent):void
 		{
 			if (movingCardObject != null)
 			{
@@ -258,7 +284,8 @@ package Games.Prison
 		
 		}
 		
-		private function resetMovCardVariables():void
+		//made by Jordan
+		protected override function resetMovCardVariables():void
 		{
 			movCardNewSprite = null;
 			movCardToFoundation = false;
@@ -266,10 +293,9 @@ package Games.Prison
 			movCardCurrentSprite = null;
 		}
 		
-		private function canBeMoved(givenCard:Card):Boolean
+		// check if card can be moved to target possition and if its true sets the sprite field to it 
+		protected override function canBeMoved(givenCard:Card):Boolean
 		{
-			// check if card can be moved to target possition and if its true sets the sprite field to it 
-			
 			//foundation container
 			if (givenCard.hitTestObject(foundationContainer))
 			{
@@ -355,10 +381,9 @@ package Games.Prison
 			return false
 		}
 		
-		private function isLastCardOfPile(givenCard:Card):Boolean
+		//made by Jordan
+		protected override function isLastCardOfPile(givenCard:Card, spriteContainer:Sprite = null):Boolean
 		{
-			//checks in each container - reserved and container if the given object is equal to the last in the pile 
-			
 			//check if card is from reserves container
 			if (givenCard.parent.parent == reservesContainer)
 			{
@@ -380,11 +405,11 @@ package Games.Prison
 				}
 				
 			}
-			
 			return false;
 		}
 		
-		private function addCardContainers():void
+		//made by Vladimir
+		protected override function addCardContainers():void
 		{
 			fillFoundationContainer();
 			fillReserveContainer();
@@ -446,7 +471,8 @@ package Games.Prison
 			}
 		}
 		
-		private function checkWin():void
+		//made by Jordan
+		protected override function checkWin():void
 		{
 			isWin = true;
 			
@@ -466,84 +492,16 @@ package Games.Prison
 			}
 		}
 		
-		private function surrender(e:MouseEvent):void
+		//made by Jordan
+		protected override function surrender(e:MouseEvent):void
 		{
 			gameOver();
 		}
 		
-		private function gameOver():void
+		//made by Jordan
+		protected override function gameOver():void
 		{
 			isGameRunning = false;
-		}
-		
-		private function dealRandomCard(dealAt:Sprite, y:int = 0):void
-		{
-			var rndCardNumber:int = randomRange(0, 51 - counterPlacedCards);
-			dealAt.addChild(cards[rndCardNumber]).y = y;
-			counterPlacedCards++;
-			cards.splice(rndCardNumber, 1);
-		}
-		
-		private function loadDeck():void
-		{
-			var cardUrl:String;
-			var cardNumbers:int = 14;
-			var cardColors:int = 4
-			
-			for (var i:int = 0; i < cardNumbers; i++)
-			{
-				if (i == 0)
-				{ //pass back card
-					continue;
-				}
-				
-				for (var j:int = 0; j < cardColors; j++)
-				{
-					var cardColor:String;
-					
-					if (i == 0)
-					{
-						cardColor = "Back";
-						cardUrl = i + cardColor;
-						
-						var card:Card = new Card(cardUrl, i, cardsSkin);
-						cards.push(card);
-						
-						break;
-					}
-					else
-					{
-						switch (j)
-						{
-						case 0: 
-							cardColor = "C";
-							break;
-						case 1: 
-							cardColor = "D";
-							break;
-						case 2: 
-							cardColor = "H";
-							break;
-						case 3: 
-							cardColor = "S";
-							break;
-						}
-					}
-					
-					cardUrl = i + cardColor;
-					
-					var card:Card = new Card(cardUrl, i, cardsSkin);
-					card.addEventListener(MouseEvent.MOUSE_DOWN, startDraging, false, 0, true);
-					card.addEventListener(MouseEvent.MOUSE_UP, stopDraging, false, 0, true);
-					card.buttonMode = true;
-					cards.push(card);
-				}
-			}
-		}
-		
-		private function randomRange(minNum:Number, maxNum:Number):int
-		{
-			return (int(Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum));
 		}
 	}
 }

@@ -4,13 +4,15 @@ package Games.Alternations
 	import flash.display.*;
 	import flash.geom.*;
 	import flash.net.URLRequest;
+	import Interfaces.IGame;
 	import SharedClasses.*
+	import SharedClasses.PrisonAlternation.*
 	
 	/**
 	 * ...
 	 * @author Jordan
 	 */
-	public class AlternationSolitaire extends Sprite
+	public class AlternationSolitaire extends AbstractSolitaire implements IGame
 	{
 		private const STAGE_WIDTH:int = 800;
 		private const STAGE_HEIGHT:int = 600;
@@ -26,6 +28,7 @@ package Games.Alternations
 		private const CONTAINER_HEIGHT:int = 100;
 		private const CONTAINER_WIDTH_SPACING:int = 10;
 		private const CARDS_Y_SPACING:int = 22;
+		private const CARDS_NUMBERS:int = 103;
 		
 		private var cardsSkin:String;
 		private var score:int = 0;
@@ -60,21 +63,25 @@ package Games.Alternations
 			showMenu();
 		}
 		
+		//made by Jordan
 		public function get IsGameRunning():Boolean
 		{
 			return this.isGameRunning;
 		}
 		
+		//made by Jordan
 		public function get IsWin():Boolean
 		{
 			return this.isWin;
 		}
 		
-		private function showMenu():void
+		//made by Kaloqn
+		protected override function showMenu():void
 		{
 			menuContainer = new Sprite();
+			var helpMenuText:String = "All top cards of tableau piles are available to play." + "You can move cards from one tableau pile to another one." + "You may build tableau piles down regardless of suit." + "You can move either a single card or a set of cards." + "When one of the piles becomes empty you can fill the space with any available single card or set of cards." + "If, during play, any of closed becomes the top card of a pile, it is automatically turned over."
 			
-			var helpMenu:AlternationHelpMenu = new AlternationHelpMenu();
+			var helpMenu:HelpMenu = new HelpMenu(helpMenuText);
 			menuContainer.addChild(helpMenu);
 			
 			var startButton:MenuButton = new MenuButton("start.png");
@@ -88,27 +95,52 @@ package Games.Alternations
 			addChild(menuContainer);
 		}
 		
-		private function startGame(e:MouseEvent):void
+		//made by Kaloqn
+		protected override function startGame(e:MouseEvent):void
 		{
 			removeChild(menuContainer);
 			menuContainer = null;
 			
 			showSurrenderAndTimer();
 			
-			DealSolitaire();
+			dealSolitaire();
 		}
 		
-		private function DealSolitaire():void
+		//made by Kaloqn
+		protected override function showSurrenderAndTimer():void
 		{
-			addCardContainers();
+			buttonsContainer = new Sprite();
 			
-			loadDeck();
+			var buttonWidth:int = 100;
 			
-			loadCardDeck();
+			var surrenderButton:Button = new Button(buttonWidth, "  Surrender", true);
+			surrenderButton.x = -125
+			surrenderButton.addEventListener(MouseEvent.CLICK, surrender, false, 0, true);
+			
+			var time:TimerCounter = new TimerCounter(0xffffff);
+			time.y = 10;
+			
+			buttonsContainer.x = STAGE_WIDTH - buttonWidth;
+			buttonsContainer.addChild(time);
+			buttonsContainer.addChild(surrenderButton);
+			
+			addChild(buttonsContainer);
+		}
+		
+		//made by Kaloqn
+		protected override function dealSolitaire():void
+		{
+			//adding two decks
+			cards = fillDeck(cards, cardsSkin);
+			cards = fillDeck(cards, cardsSkin);
+			
+			addCardContainers();	
+			loadCardDeckContainer();
 			loadTaublePilesCards();
 		}
 		
-		private function addCardContainers():void
+		//made by Kaloqn
+		protected override function addCardContainers():void
 		{
 			fillDeckContainer();
 			fillFoundationContainer();
@@ -180,7 +212,47 @@ package Games.Alternations
 			}
 		}
 		
-		private function loadCardDeck():void
+		//made by Kaloqn
+		protected override function loadTaublePilesCards():void
+		{
+			var taublePiles:int = 7;
+			var taubleCards:int = 7;
+			
+			for (var pile:int = 0; pile < taublePiles; pile++)
+			{
+				for (var card:int = 0; card < taubleCards; card++)
+				{
+					var pileContainer:Sprite = taublePilesContainer.getChildAt(pile) as Sprite;
+					var cardY = (pileContainer.numChildren - 1) * CARDS_Y_SPACING;
+					if (card % 2 == 0)
+					{
+						
+						dealRandomCard(pileContainer, cards, counterPlacedCards, cardY,CARDS_NUMBERS);
+						counterPlacedCards++
+					}
+					else
+					{
+						dealBackCard(pileContainer);
+					}
+					
+				}
+			}
+			
+			function dealBackCard(dealAt:Sprite):void
+			{
+				var cardColor:String = "Back";
+				var cardUrl:String = 0 + cardColor;
+				
+				var card:Card = new Card(cardUrl, 0, cardsSkin);
+				card.name = "back";
+				card.y = (dealAt.numChildren - 1) * CARDS_Y_SPACING
+				
+				dealAt.addChild(card);
+			}
+		}
+		
+		//made by Kaloqn
+		private function loadCardDeckContainer():void
 		{
 			var deck:Sprite = deckContainer.getChildAt(0) as Sprite;
 			deck.buttonMode = true;
@@ -198,31 +270,7 @@ package Games.Alternations
 			}
 		}
 		
-		private function loadTaublePilesCards():void
-		{
-			var taublePiles:int = 7;
-			var taubleCards:int = 7;
-			
-			for (var pile:int = 0; pile < taublePiles; pile++)
-			{
-				for (var card:int = 0; card < taubleCards; card++)
-				{
-					var pileContainer:Sprite = taublePilesContainer.getChildAt(pile) as Sprite;
-					var cardY = (pileContainer.numChildren - 1) * CARDS_Y_SPACING;
-					if (card % 2 == 0)
-					{
-						
-						dealRandomCard(pileContainer, cardY);
-					}
-					else
-					{
-						dealBackCard(pileContainer);
-					}
-					
-				}
-			}
-		}
-		
+		//made by Kaloqn
 		private function dealDeckCard(e:MouseEvent):void
 		{
 			var currentCard:Sprite = e.target as Sprite;
@@ -231,19 +279,8 @@ package Games.Alternations
 			undealedCards.removeChild(currentCard);
 			
 			var dealPile:Sprite = deckContainer.getChildAt(1) as Sprite
-			dealRandomCard(dealPile);
-		}
-		
-		private function dealBackCard(dealAt:Sprite):void
-		{
-			var cardColor:String = "Back";
-			var cardUrl:String = 0 + cardColor;
-			
-			var card:Card = new Card(cardUrl, 0, cardsSkin);
-			card.name = "back";
-			card.y = (dealAt.numChildren - 1) * CARDS_Y_SPACING
-			
-			dealAt.addChild(card);
+			dealRandomCard(dealPile, cards, counterPlacedCards,0,CARDS_NUMBERS);
+			counterPlacedCards++;
 		}
 		
 		private function flipCard(card:Card):void
@@ -255,108 +292,44 @@ package Games.Alternations
 			{
 				var cardY = (parentContainer.numChildren - 2) * CARDS_Y_SPACING
 				parentContainer.removeChild(backCard);
-				dealRandomCard(parentContainer, cardY);
+				dealRandomCard(parentContainer, cards, counterPlacedCards, cardY, CARDS_NUMBERS);
+				counterPlacedCards++;
 			}
 		}
 		
-		private function dealRandomCard(dealAt:Sprite, y:int = 0):void
+		protected override function isLastCardOfPile(givenCard:Card, spriteContainer:Sprite = null):Boolean
 		{
-			var rndCardNumber:int = randomRange(0, 103 - counterPlacedCards);
-			dealAt.addChild(cards[rndCardNumber]).y = y;
-			counterPlacedCards++;
-			cards.splice(rndCardNumber, 1);
+			for (var pile:int = 0; pile < spriteContainer.numChildren; pile++)
+			{
+				var pileContainer:Sprite = spriteContainer.getChildAt(pile) as Sprite;
+				
+				var lastCardIndex:int = spriteContainer.numChildren - 1;
+				
+				var card:Card = spriteContainer.getChildAt(lastCardIndex) as Card;
+				
+				if (givenCard == card)
+				{
+					return true;
+				}
+				
+			}
+				
+			return false;	
 		}
 		
-		private function showSurrenderAndTimer():void
-		{
-			buttonsContainer = new Sprite();
-			
-			var buttonWidth:int = 100;
-			
-			var surrenderButton:Button = new Button(buttonWidth, "  Surrender", true);
-			surrenderButton.x = -125
-			surrenderButton.addEventListener(MouseEvent.CLICK, surrender, false, 0, true);
-			
-			var time:TimerCounter = new TimerCounter(0xffffff);
-			time.y = 10;
-			
-			buttonsContainer.x = STAGE_WIDTH - buttonWidth;
-			buttonsContainer.addChild(time);
-			buttonsContainer.addChild(surrenderButton);
-			
-			addChild(buttonsContainer);
-		}
-		
-		private function surrender(e:MouseEvent):void
+		//made by Jordan
+		protected override function surrender(e:MouseEvent):void
 		{
 			gameOver();
 		}
 		
-		private function gameOver():void
+		//made by Jordan
+		protected override function gameOver():void
 		{
 			isGameRunning = false;
 		}
 		
-		private function loadDeck():void
-		{
-			var cardUrl:String;
-			var cardNumbers:int = 14;
-			var cardColors:int = 4
-			
-			for (var loadTimes:int = 0; loadTimes < 2; loadTimes++)
-			{
-				for (var i:int = 0; i < cardNumbers; i++)
-				{
-					if (i == 0)
-					{ //pass back card
-						continue;
-					}
-					
-					for (var j:int = 0; j < cardColors; j++)
-					{
-						var cardColor:String;
-						
-						if (i == 0)
-						{
-							cardColor = "Back";
-							cardUrl = i + cardColor;
-							
-							var card:Card = new Card(cardUrl, i);
-							cards.push(card);
-							
-							break;
-						}
-						else
-						{
-							switch (j)
-							{
-							case 0: 
-								cardColor = "C";
-								break;
-							case 1: 
-								cardColor = "D";
-								break;
-							case 2: 
-								cardColor = "H";
-								break;
-							case 3: 
-								cardColor = "S";
-								break;
-							}
-						}
-						
-						cardUrl = i + cardColor;
-						
-						var card:Card = new Card(cardUrl, i, cardsSkin);
-						card.addEventListener(MouseEvent.MOUSE_DOWN, startDraging, false, 0, true);
-						card.addEventListener(MouseEvent.MOUSE_UP, stopDraging, false, 0, true);
-						card.buttonMode = false;
-						cards.push(card);
-					}
-				}
-			}
-		}
-		
+		//made by Jordan
 		private function canBeDragged(cardContainer:Sprite, cardIndex:int):Boolean
 		{
 			var cardOne:Card;
@@ -366,6 +339,7 @@ package Games.Alternations
 			{
 				cardOne = cardContainer.getChildAt(i) as Card;
 				cardTwo = cardContainer.getChildAt(i + 1) as Card;
+				
 				if (cardOne.name == "back" || cardTwo.name == "back")
 				{
 					multipleStartIndex = null;
@@ -386,15 +360,15 @@ package Games.Alternations
 			return true
 		}
 		
-		private function startDraging(e:MouseEvent):void
+		//made by Jordan
+		protected override function startDraging(e:MouseEvent):void
 		{
 			if (!isDragging)
 			{
 				isDragging = true;
 				
 				var cardContainer:Sprite = e.target.parent as Sprite;
-				var card:Card = e.target as Card;
-				var cardIndex:int = cardContainer.getChildIndex(card);
+				var cardIndex:int = cardContainer.getChildIndex(e.target as Card);
 				
 				if (canBeDragged(cardContainer, cardIndex))
 				{
@@ -437,6 +411,7 @@ package Games.Alternations
 			}
 		}
 		
+		//made by Jordan
 		private function followCard(e:Event):void
 		{
 			var counter:int = 1;
@@ -459,7 +434,8 @@ package Games.Alternations
 			}
 		}
 		
-		private function stopDraging(e:MouseEvent):void
+		//made by Jordan
+		protected override function stopDraging(e:MouseEvent):void
 		{
 			if (movingCardObject != null)
 			{
@@ -481,9 +457,8 @@ package Games.Alternations
 				}
 				
 				movingCardObject.stopDrag();
-				var movingCard:Card = movingCardObject as Card;
 				
-				if (canBeMoved(movingCard))
+				if (canBeMoved(movingCardObject as Card))
 				{
 					if (moveMultiple)
 					{
@@ -567,6 +542,7 @@ package Games.Alternations
 			}
 		}
 		
+		//made by Jordan
 		private function checkFlipCard(givenSprite:Sprite):void
 		{
 			try
@@ -585,10 +561,10 @@ package Games.Alternations
 		
 		}
 		
-		private function canBeMoved(givenCard:Card):Boolean
+		//made by Jordan
+		// check if card can be moved to target possition and if its true sets the sprite field to it 
+		protected override function canBeMoved(givenCard:Card):Boolean
 		{
-			// check if card can be moved to target possition and if its true sets the sprite field to it 
-			
 			//foundation container
 			if (givenCard.hitTestObject(foundationContainer))
 			{
@@ -658,7 +634,8 @@ package Games.Alternations
 			return false
 		}
 		
-		private function resetMovCardVariables():void
+		//made by Jordan
+		protected override function resetMovCardVariables():void
 		{
 			isDragging = false;
 			moveMultiple = false;
@@ -670,29 +647,8 @@ package Games.Alternations
 			followingCards = new Vector.<Card>();
 		}
 		
-		private function isLastCardOfPile(givenCard:Card, spriteContainer):Boolean
-		{
-			//checks in each container - reserved and container if the given object is equal to the last in the pile 
-			
-			for (var pile:int = 0; pile < spriteContainer.numChildren; pile++)
-			{
-				var pileContainer:Sprite = spriteContainer.getChildAt(pile) as Sprite;
-				
-				var lastCardIndex:int = spriteContainer.numChildren - 1;
-				
-				var card:Card = spriteContainer.getChildAt(lastCardIndex) as Card;
-				
-				if (givenCard == card)
-				{
-					return true;
-				}
-				
-			}
-			
-			return false;
-		}
-		
-		private function checkWin():void
+		//made by Jordan
+		protected override function checkWin():void
 		{
 			isWin = true;
 			
@@ -710,11 +666,6 @@ package Games.Alternations
 			{
 				gameOver();
 			}
-		}
-		
-		private function randomRange(minNum:Number, maxNum:Number):int
-		{
-			return (int(Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum));
 		}
 	}
 }

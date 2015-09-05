@@ -1,4 +1,4 @@
-package Games.GrandFather
+package SharedClasses.GrandFatherEightOff
 {
 	import flash.display.*;
 	import flash.text.*;
@@ -22,6 +22,7 @@ package Games.GrandFather
 		
 		}
 		
+		//WRITE TEXT 
 		private function writeRules():void
 		{
 			

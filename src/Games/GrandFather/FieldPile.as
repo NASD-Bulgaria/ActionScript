@@ -1,39 +1,23 @@
 package Games.GrandFather
 {
-	import flash.display.Sprite;
-	import flash.display.Shape;
 	import SharedClasses.Card;
+	import SharedClasses.GrandFatherEightOff.Pile;
 	
 	/**
 	 * ...
-	 * @author Mitko
+	 * @author Dimitar Genov
 	 */
-	public class FieldPile extends Sprite
+	public class FieldPile extends Pile
 	{
 		private var cardsInFieldPile:Array = [];
 		private var topCard:Card;
 		
-		private const CARD_WIDTH:int = 65;
-		private const CARD_HEIGHT:int = 100;
 		
 		public function FieldPile(fieldPileIndexPar:int)
 		{
-			drawBorder();
+			super();
 		}
-		
-		private function drawBorder():void
-		{
-			var line:Shape = new Shape();
-			line.graphics.lineStyle(1, 0x0);
-			line.graphics.moveTo(0, 0);
-			line.graphics.lineTo(CARD_WIDTH, 0);
-			line.graphics.lineTo(CARD_WIDTH, CARD_HEIGHT);
-			line.graphics.lineTo(0, CARD_HEIGHT);
-			line.graphics.lineTo(0, 0);
-			this.addChild(line);
-		}
-		
-		
+		// PUSH CARD IN FIELDPILE
 		public function pushCard(card:Card):void
 		{
 			this.topCard = card;
@@ -53,6 +37,7 @@ package Games.GrandFather
 			this.cardsInFieldPile.push(card);
 		}
 		
+		//THE PILE 
 		public function giveTopCard():Card
 		{
 			var currentTopCard:Card = this.topCard;

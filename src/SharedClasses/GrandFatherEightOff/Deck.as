@@ -1,29 +1,44 @@
-package Games.EightOff
-
+package SharedClasses.GrandFatherEightOff 
 {
-	
+	import flash.display.Sprite;
+	import SharedClasses.*
 	/**
 	 * ...
 	 * @author Kolarov
 	 */
-	import SharedClasses.Card
-	
-	public class Deck
+	public class Deck extends Sprite
 	{
-		private var deck:Array = [];
+		protected var deck:Array = [];
 		private var cardSkin:String;
 		
-		public function Deck(cardSkinPar:String)
+		public function Deck(cardSkinPar:String) 
 		{
 			this.cardSkin = cardSkinPar;
-			loadDeck();
+			Assistant.fillContainerWithImg(this as Sprite, "Data/images/Cards/" + this.cardSkin + "0Back.png", 65, 100);
 		}
 		
-		private function loadDeck():void
+		//RETURNS RANDOM NUMBER 
+		private function RandomNumber():int
+		{
+			return (Math.floor(Math.random() * ((this.deck.length - 1) - 0 + 1)) + 0);
+		}
+		
+		//RETURN TOP CARD //KOLAROV
+		public function giveTopCard():Card
+		{
+			var topCard:Card;
+			var randomNumber:int = RandomNumber();
+			topCard = this.deck[randomNumber];
+			this.deck.splice(randomNumber, 1);
+			return topCard;
+		}
+		
+		//FILL ARRAY WITH 52 DIFFERENT CARDS
+		protected function loadDeck():void
 		{
 			var cardUrl:String;
 			var cardNumbers:int = 14;
-			var cardColors:int = 4
+			var cardColors:int = 4;
 			
 			for (var i:int = 0; i < cardNumbers; i++)
 			{
@@ -40,9 +55,6 @@ package Games.EightOff
 					{
 						cardColor = "Back";
 						cardUrl = i + cardColor;
-						
-					//	this.deck.push(card);
-						
 						break;
 					}
 					else
@@ -71,19 +83,6 @@ package Games.EightOff
 				}
 			}
 		}
-		
-		public function RandomNumber():int
-		{
-			return (Math.floor(Math.random() * ((this.deck.length - 1) - 0 + 1)) + 0);
-		}
-		
-		public function giveTopCard():Card
-		{
-			var topCard:Card;
-			var randomNumber:int = RandomNumber();
-			topCard = this.deck[randomNumber];
-			this.deck.splice(randomNumber, 1);
-			return topCard;
-		}
 	}
+
 }
